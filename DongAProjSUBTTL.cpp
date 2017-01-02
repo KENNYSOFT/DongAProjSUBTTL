@@ -1,15 +1,13 @@
 #include"KENNYC_160419.H"
-FILE*ffn=fopen("filename.txt","r");
-FILE*ffs=fopen("finished.txt","r");
 #include"KENNYFILE.H"
 #include"KENNYSTRHELPER.H"
 #define HEIGHT 40
 #define WIDTH 180
-FILE*fin,*fout;
-int n,pos,avail,cut,dir=1;
+FILE *ffn,*ffs,*fin,*fout;
+int n,pos,cut,dir=1;
 char filename[1010],line[8][510];
 wchar_t linew[60010][8][210],delimeter[]={182,8214,12305,65084};
-bool isDelimeter[65536];
+bool available[60010],isDelimeter[65536];
 inline void wprintf(const wchar_t ch)
 {
 	if(wprintf(L"%c",ch)!=1)wprintf(ch<128?L"?":L"£¿");
@@ -37,33 +35,16 @@ void print(int line=0)
 void move()
 {
 	int i;
-	pos=pos+dir;
 	cut=5;
-	if(wcsstr(linew[pos][3]+6,L"#N/A")&&wcslen(linew[pos][7])==7)avail=1;
-	else
+	if(available[pos=pos+dir])
 	{
-		avail=0;
 		for(i=6;linew[pos][5][i];++i)
 		{
-			if((linew[pos][5][i]>='A'&&linew[pos][5][i]<='Z')||(linew[pos][5][i]>='a'&&linew[pos][5][i]<='z'))
-			{
-				avail=1;
-				cut=5;
-				break;
-			}
-			else if(isDelimeter[linew[pos][5][i]])
-			{
-				avail=1;
-				for(i=6;linew[pos][5][i];++i)
-				{
-					if(linew[pos][5][i]==delimeter[0])cut=i;
-					if(i>cut+20)break;
-				}
-				break;
-			}
+			if(linew[pos][5][i]==delimeter[0])cut=i;
+			if(i>cut+20)break;
 		}
+		print();
 	}
-	if(avail)print();
 }
 void load()
 {
@@ -85,6 +66,19 @@ void load()
 			if(linew[i][j][wcslen(linew[i][j])-1]=='\n')linew[i][j][wcslen(linew[i][j])-1]=0;
 		}
 		wcscpy(linew[i][0],linew[i][4]);
+		if(wcsstr(linew[i][3]+6,L"#N/A")&&wcslen(linew[i][7])==7)available[i]=1;
+		else
+		{
+			available[i]=0;
+			for(j=6;linew[i][5][j];++j)
+			{
+				if((linew[i][5][j]>='A'&&linew[i][5][j]<='Z')||(linew[i][5][j]>='a'&&linew[i][5][j]<='z')||isDelimeter[linew[i][5][j]])
+				{
+					available[i]=1;
+					break;
+				}
+			}
+		}
 	}
 end:
 	n=i-1;
@@ -93,9 +87,6 @@ end:
 void save()
 {
 	int i,j;
-	char command[1024];
-	sprintf(command,"copy %s %s.bak >nul",filename,filename);
-	system(command);
 	fout=fopen(filename,"w");
 	for(i=0;i<=n;++i)
 	{
@@ -107,6 +98,9 @@ void save()
 		}
 	}
 	fclose(fout);
+	ffs=fopen("finished.txt","w");
+	fprintf(ffs,"%d",pos);
+	fclose(ffs);
 }
 int main()
 {
@@ -119,14 +113,18 @@ int main()
 	setlocale(LC_ALL,"korean");
 	gotoxy(0,HEIGHT-1);
 	wprintf(L"¢Õ move / ¡ê adjust / [ ]¢Ò commit / r reset / x mark / s save / q quit");
-	fgets(filename,1000,ffn);
-	fscanf(ffs,"%d",&pos);
+	ffn=fopen("filename.txt","r");
+	if(ffn)fgets(filename,1000,ffn);
+	fclose(ffn);
+	ffs=fopen("finished.txt","r");
+	if(ffs)fscanf(ffs,"%d",&pos);
+	fclose(ffs);
 	for(i=0;delimeter[i];++i)isDelimeter[delimeter[i]]=1;
 	load();
 	move();
 	while(1)
 	{
-		while(!avail)move();
+		while(!available[pos])move();
 		ch=getch();
 		switch(ch)
 		{
