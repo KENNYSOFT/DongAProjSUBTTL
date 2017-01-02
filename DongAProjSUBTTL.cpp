@@ -40,7 +40,7 @@ void move()
 	{
 		for(i=6;linew[pos][5][i];++i)
 		{
-			if(linew[pos][5][i]==delimeter[0])cut=i;
+			if(isDelimeter[linew[pos][5][i]])cut=i;
 			if(i>cut+20)break;
 		}
 		print();
@@ -166,6 +166,11 @@ int main()
 			memmove(linew[pos][5]+6+(wcslen(linew[pos][4])-wcslen(linew[pos][0])),linew[pos][5]+6,sizeof(wchar_t)*(wcslen(linew[pos][5])+1-6));
 			memcpy(linew[pos][5]+6,linew[pos][4]+7,sizeof(wchar_t)*(wcslen(linew[pos][4])-wcslen(linew[pos][0])));
 			wcscpy(linew[pos][4],linew[pos][0]);
+			for(i=6;linew[pos][5][i];++i)
+			{
+				if(isDelimeter[linew[pos][5][i]])cut=i;
+				if(i>cut+20)break;
+			}
 			print(4);
 			print(5);
 			break;
