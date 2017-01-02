@@ -1,6 +1,10 @@
 #include"KENNYC_160419.H"
 #include"KENNYFILE.H"
 #include"KENNYSTRHELPER.H"
+#define HOME 71
+#define END 79
+#define ESCAPE 0
+#define ALTF4 107
 #define HEIGHT 40
 #define WIDTH 180
 FILE *ffn,*ffs,*fin,*fout;
@@ -112,7 +116,7 @@ int main()
 	system("color f0");
 	setlocale(LC_ALL,"korean");
 	gotoxy(0,HEIGHT-1);
-	wprintf(L"¢Õ move / ¡ê adjust / [ ]¢Ò commit / r reset / x mark / s save / q quit");
+	wprintf(L"¢Õ move / ¡ê[Hm][En] adjust / [ ]¢Ò commit / r reset / x mark / s save / q quit");
 	ffn=fopen("filename.txt","r");
 	if(ffn)fgets(filename,1000,ffn);
 	fclose(ffn);
@@ -148,6 +152,31 @@ int main()
 				dir=1;
 				move();
 				break;
+			case HOME:
+				cut=5;
+				print(5);
+				break;
+			case END:
+				cut=wcslen(linew[pos][5])-1;
+				print(5);
+				break;
+			default:
+				gotoxy(0,HEIGHT-2);
+				wprintf(L"Unknown arrow keycode: %d",ch2);
+				break;
+			}
+			break;
+		case ESCAPE:
+			ch2=getch();
+			switch(ch2)
+			{
+			case ALTF4:
+				exit(0);
+				break;
+			default:
+				gotoxy(0,HEIGHT-2);
+				wprintf(L"Unknown escape keycode: %d",ch2);
+				break;
 			}
 			break;
 		case ' ':
@@ -164,7 +193,7 @@ int main()
 		case 'r':
 		case 'R':
 			memmove(linew[pos][5]+6+(wcslen(linew[pos][4])-wcslen(linew[pos][0])),linew[pos][5]+6,sizeof(wchar_t)*(wcslen(linew[pos][5])+1-6));
-			memcpy(linew[pos][5]+6,linew[pos][4]+7,sizeof(wchar_t)*(wcslen(linew[pos][4])-wcslen(linew[pos][0])));
+			wcsncpy(linew[pos][5]+6,linew[pos][4]+wcslen(linew[pos][0]),wcslen(linew[pos][4])-wcslen(linew[pos][0]));
 			wcscpy(linew[pos][4],linew[pos][0]);
 			for(i=6;linew[pos][5][i];++i)
 			{
@@ -192,6 +221,10 @@ int main()
 		case 'q':
 		case 'Q':
 			exit(0);
+			break;
+		default:
+			gotoxy(0,HEIGHT-2);
+			wprintf(L"Unknown keycode: %d",ch);
 			break;
 		}
 	}
