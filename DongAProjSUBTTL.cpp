@@ -6,9 +6,10 @@ FILE*ffs=fopen("finished.txt","r");
 #define HEIGHT 40
 #define WIDTH 180
 FILE*fin,*fout;
-char filename[1010],line[45010][8][510];
-wchar_t linew[45010][8][210],delimeter[]=L"¢Ò";
 int n,pos,avail,cut,dir=1;
+char filename[1010],line[8][510];
+wchar_t linew[60010][8][210],delimeter[]={182,8214,12305,65084};
+bool isDelimeter[65536];
 inline void wprintf(const wchar_t ch)
 {
 	if(wprintf(L"%c",ch)!=1)wprintf(ch<128?L"?":L"£¿");
@@ -38,20 +39,11 @@ void move()
 	int i;
 	pos=pos+dir;
 	cut=5;
-	if(wcsstr(linew[pos][5],delimeter))// todo: multi delemeter
-	{
-		avail=1;
-		for(i=6;linew[pos][5][i];++i)
-		{
-			if(linew[pos][5][i]==delimeter[0])cut=i;
-			if(i>cut+20)break;
-		}
-	}
-	else if(wcsstr(linew[pos][3]+6,L"#N/A")&&wcslen(linew[pos][7])==7)avail=1;
+	if(wcsstr(linew[pos][3]+6,L"#N/A")&&wcslen(linew[pos][7])==7)avail=1;
 	else
 	{
 		avail=0;
-		/*for(i=6;linew[pos][5][i];++i)
+		for(i=6;linew[pos][5][i];++i)
 		{
 			if((linew[pos][5][i]>='A'&&linew[pos][5][i]<='Z')||(linew[pos][5][i]>='a'&&linew[pos][5][i]<='z'))
 			{
@@ -59,26 +51,44 @@ void move()
 				cut=5;
 				break;
 			}
-		}*/
+			else if(isDelimeter[linew[pos][5][i]])
+			{
+				avail=1;
+				for(i=6;linew[pos][5][i];++i)
+				{
+					if(linew[pos][5][i]==delimeter[0])cut=i;
+					if(i>cut+20)break;
+				}
+				break;
+			}
+		}
 	}
 	if(avail)print();
 }
 void load()
 {
 	int i,j;
+	fin=fopen(filename,"r");
+	if(fin==NULL)
+	{
+		gotoxy(0,0);
+		wprintf(L"file not exist");
+		exit(1);
+	}
 	for(i=0;;++i)
 	{
 		for(j=1;j<=7;++j)
 		{
-			fgets(line[i][j],500,fin);
+			fgets(line[j],500,fin);
 			if(feof(fin))goto end;
-			utf8_to_unicode(line[i][j],linew[i][j]);
+			utf8_to_unicode(line[j],linew[i][j]);
 			if(linew[i][j][wcslen(linew[i][j])-1]=='\n')linew[i][j][wcslen(linew[i][j])-1]=0;
 		}
 		wcscpy(linew[i][0],linew[i][4]);
 	}
 end:
 	n=i-1;
+	fclose(fin);
 }
 void save()
 {
@@ -91,15 +101,16 @@ void save()
 	{
 		for(j=1;j<=7;++j)
 		{
-			unicode_to_utf8(linew[i][j],line[i][j]);
-			strcat(line[i][j],"\n");
-			fputs(line[i][j],fout);
+			unicode_to_utf8(linew[i][j],line[j]);
+			strcat(line[j],"\n");
+			fputs(line[j],fout);
 		}
 	}
 	fclose(fout);
 }
 int main()
 {
+	int i;
 	char ch,ch2;
 	SetConsoleTitle("DongAProjSUBTTL");
 	SetConsoleSize(HEIGHT,WIDTH);
@@ -110,14 +121,8 @@ int main()
 	wprintf(L"¢Õ move / ¡ê adjust / [ ]¢Ò commit / r reset / x mark / s save / q quit");
 	fgets(filename,1000,ffn);
 	fscanf(ffs,"%d",&pos);
-	fin=fopen(filename,"r");
-	if(fin==NULL)
-	{
-		wprintf(L"file not exist");
-		return 1;
-	}
+	for(i=0;delimeter[i];++i)isDelimeter[delimeter[i]]=1;
 	load();
-	fclose(fin);
 	move();
 	while(1)
 	{
@@ -130,11 +135,11 @@ int main()
 			switch(ch2)
 			{
 			case LEFT:
-				if(cut>5)for(cut--;linew[pos][5][cut]!=delimeter[0]&&cut>5;--cut);
+				if(cut>5)for(cut--;!isDelimeter[linew[pos][5][cut]]&&cut>5;--cut);
 				print(5);
 				break;
 			case RIGHT:
-				if(cut<wcslen(linew[pos][5])-1)for(cut++;linew[pos][5][cut]!=delimeter[0]&&linew[pos][5][cut+1];++cut);
+				if(cut<wcslen(linew[pos][5])-1)for(cut++;!isDelimeter[linew[pos][5][cut]]&&linew[pos][5][cut+1];++cut);
 				print(5);
 				break;
 			case UP:
@@ -169,7 +174,7 @@ int main()
 		case 'x':
 		case 'X':
 			if(wcslen(linew[pos][7])==7)wcscat(linew[pos][7],L"xx");
-			else linew[pos][7][7]=0;
+			else if(!wcscmp(linew[pos][7]+7,L"xx"))linew[pos][7][7]=0;
 			print(7);
 			break;
 		case 's':
@@ -187,5 +192,6 @@ int main()
 			break;
 		}
 	}
+	fcloseall();
 	return 0;
 }
