@@ -5,44 +5,66 @@
 using namespace std;
 #include<string.h>
 #include<windows.h>
-wchar_t* ansi_to_unicode(const char *pszCode)
+wchar_t* ansi_to_unicode(const char *pszCode,wchar_t *pszOut)
 {
 	int nLength;
-	wchar_t *bstrWide;
 	nLength=MultiByteToWideChar(CP_ACP,0,pszCode,-1,NULL,NULL);
-	bstrWide=SysAllocStringLen(NULL,nLength);
-	MultiByteToWideChar(CP_ACP,0,pszCode,-1,bstrWide,nLength);
-	return bstrWide;
+	MultiByteToWideChar(CP_ACP,0,pszCode,-1,pszOut,nLength);
+	return pszOut;
 }
-char* ansi_to_utf8(const char *pszCode)
+wchar_t* ansi_to_unicode(const char *pszCode,wchar_t **pszOut)
+{
+	int nLength;
+	nLength=MultiByteToWideChar(CP_ACP,0,pszCode,-1,NULL,NULL);
+	*pszOut=SysAllocStringLen(NULL,nLength);
+	ansi_to_unicode(pszCode,*pszOut);
+	return *pszOut;
+}
+char* ansi_to_utf8(const char *pszCode,char *pszOut)
 {
 	int nLength;
 	wchar_t *bstrWide;
-	char *pszRes;
 	nLength=MultiByteToWideChar(CP_ACP,0,pszCode,-1,NULL,NULL);
 	bstrWide=SysAllocStringLen(NULL,nLength);
 	MultiByteToWideChar(CP_ACP,0,pszCode,-1,bstrWide,nLength);
 	nLength=WideCharToMultiByte(CP_UTF8,0,bstrWide,-1,NULL,0,NULL,NULL);
-	pszRes=(char*)malloc(nLength+1);
-	WideCharToMultiByte(CP_UTF8,0,bstrWide,-1,pszRes,nLength,NULL,NULL);
+	WideCharToMultiByte(CP_UTF8,0,bstrWide,-1,pszOut,nLength,NULL,NULL);
 	SysFreeString(bstrWide);
-	return pszRes;
+	return pszOut;
 }
-char* unicode_to_ansi(const wchar_t *pszCode)
+char* ansi_to_utf8(const char *pszCode,char **pszOut)
 {
 	int nLength;
-	char* pszRes;
+	wchar_t *bstrWide;
+	nLength=MultiByteToWideChar(CP_ACP,0,pszCode,-1,NULL,NULL);
+	bstrWide=SysAllocStringLen(NULL,nLength);
+	MultiByteToWideChar(CP_ACP,0,pszCode,-1,bstrWide,nLength);
+	nLength=WideCharToMultiByte(CP_UTF8,0,bstrWide,-1,NULL,0,NULL,NULL);
+	*pszOut=(char*)malloc(nLength);
+	ansi_to_utf8(pszCode,*pszOut);
+	SysFreeString(bstrWide);
+	return *pszOut;
+}
+char* unicode_to_ansi(const wchar_t *pszCode,char *pszOut)
+{
+	int nLength;
 	nLength=WideCharToMultiByte(CP_ACP,0,pszCode,-1,NULL,0,NULL,NULL);
-	pszRes=(char*)malloc(nLength);
-	WideCharToMultiByte(CP_ACP,0,pszCode,-1,pszRes,nLength,NULL,NULL);
-	return pszRes;
+	WideCharToMultiByte(CP_ACP,0,pszCode,-1,pszOut,nLength,NULL,NULL);
+	return pszOut;
+}
+char* unicode_to_ansi(const wchar_t *pszCode,char **pszOut)
+{
+	int nLength;
+	nLength=WideCharToMultiByte(CP_ACP,0,pszCode,-1,NULL,0,NULL,NULL);
+	*pszOut=(char*)malloc(nLength);
+	unicode_to_ansi(pszCode,*pszOut);
+	return *pszOut;
 }
 char* unicode_to_utf8(const wchar_t *pszCode,char *pszOut)
 {
 	int nLength;
 	nLength=WideCharToMultiByte(CP_UTF8,0,pszCode,-1,NULL,0,NULL,NULL);
 	WideCharToMultiByte(CP_UTF8,0,pszCode,-1,pszOut,nLength,NULL,NULL);
-	pszOut[nLength]=0;
 	return pszOut;
 }
 char* unicode_to_utf8(const wchar_t *pszCode,char **pszOut)
@@ -60,8 +82,8 @@ char* utf8_to_ansi(const char *pszCode,char *pszOut)
 	nLength=MultiByteToWideChar(CP_UTF8,0,pszCode,-1,NULL,NULL);
 	bstrWide=SysAllocStringLen(NULL,nLength);
 	MultiByteToWideChar(CP_UTF8,0,pszCode,-1,bstrWide,nLength);
+	nLength=WideCharToMultiByte(CP_ACP,0,bstrWide,-1,NULL,0,NULL,NULL);
 	WideCharToMultiByte(CP_ACP,0,bstrWide,-1,pszOut,nLength,NULL,NULL);
-	pszOut[nLength]=0;
 	SysFreeString(bstrWide);
 	return pszOut;
 }
@@ -83,7 +105,6 @@ wchar_t* utf8_to_unicode(const char *pszCode,wchar_t *pszOut)
 	int nLength;
 	nLength=MultiByteToWideChar(CP_UTF8,0,pszCode,-1,NULL,NULL);
 	MultiByteToWideChar(CP_UTF8,0,pszCode,-1,pszOut,nLength);
-	pszOut[nLength]=0;
 	return pszOut;
 }
 wchar_t* utf8_to_unicode(const char *pszCode,wchar_t **pszOut)
@@ -173,7 +194,7 @@ char* unescape_html(char *dest,bool toUtf8=false)
 		fl=strlen(entity)+1;
 		sscanf(entity+3,"%x",&unicode[0]);
 		if(toUtf8)unicode_to_utf8(unicode,conv);
-		else strcpy(conv,unicode_to_ansi(unicode));
+		else unicode_to_ansi(unicode,conv);
 		tl=strlen(conv);
 		memmove(ptr+tl,ptr+fl,dl-(ptr-dest)-fl+1);
 		for(i=0;i<tl;++i)ptr[i]=conv[i];
@@ -187,7 +208,7 @@ char* unescape_html(char *dest,bool toUtf8=false)
 		fl=strlen(entity)+1;
 		sscanf(entity+2,"%d",&unicode[0]);
 		if(toUtf8)unicode_to_utf8(unicode,conv);
-		else strcpy(conv,unicode_to_ansi(unicode));
+		else unicode_to_ansi(unicode,conv);
 		tl=strlen(conv);
 		memmove(ptr+tl,ptr+fl,dl-(ptr-dest)-fl+1);
 		for(i=0;i<tl;++i)ptr[i]=conv[i];
@@ -298,59 +319,5 @@ int lastIndexOf(const char *src,const char *str)
 	const char *t=src,*tt;
 	while(tt=strstr(t,str))t=tt+sl;
 	return t-sl-src;
-}
-char** createStringArray(int n,...)
-{
-	int i;
-	char **ret=(char**)malloc(n+1);
-	va_list ap;
-	va_start(ap,n);
-	for(i=0;i<n;++i)ret[i]=va_arg(ap,char*);
-	ret[n]=0;
-	return ret;
-}
-void destroyStringArray(char **arr)
-{
-	int i;
-	for(i=0;arr[i];++i)free(arr[i]);
-	free(arr);
-}
-char** split(const char *src,const char *str)
-{
-	int i,cnt=getCount(src,str),sl=strlen(src),tl=strlen(str),l;
-	char **ret=(char**)malloc(cnt+2);
-	const char *ptr=src;
-	for(i=0;i<cnt;++i)
-	{
-		l=strstr(ptr,str)-ptr;
-		ret[i]=(char*)malloc(l+1);
-		strncpy(ret[i],ptr,l);
-		ret[i][l]=0;
-		ptr=strstr(ptr,str)+tl;
-	}
-	ret[cnt]=(char*)malloc(src+sl-ptr);
-	strcpy(ret[cnt],ptr);
-	ret[cnt+1]=0;
-	return ret;
-}
-char* split(const char *src,const char *str,int pos)
-{
-	if(pos>=0)return split(src,str)[pos];
-	else return split(src,str)[getCount(src,str)+1+pos];
-}
-char* join(char **src,const char *str)
-{
-	int i,cnt,sl=0,tl=strlen(str);
-	char *ret;
-	for(cnt=0;;++cnt)if(src[cnt]==0)break;
-	for(i=0;i<cnt;++i)sl=sl+strlen(src[i]);
-	ret=(char*)malloc(sl+tl*(cnt-1)+1);
-	ret[0]=0;
-	for(i=0;i<cnt;++i)
-	{
-		strcat(ret,src[i]);
-		if(i<cnt-1)strcat(ret,str);
-	}
-	return ret;
 }
 #endif
