@@ -116,7 +116,7 @@ void loadSetting()
 		val[end-sta+1]=0;
 		if(!strcmpi(var,"width"))sscanf(val,"%d",&width);
 		else if(!strcmpi(var,"height"))sscanf(val,"%d",&height);
-		else if(!strcmpi(var,"filename"))strcpy(filename,val);
+		else if(!strcmpi(var,"filename"))utf8_to_ansi(val,filename);
 		else if(!strcmpi(var,"finished"))sscanf(val,"%d",&finished);
 		else if(!strcmpi(var,"delimeter"))utf8_to_unicode(val,delimeter);
 		else if(!strcmpi(var,"article"))sscanf(val,"%d",&article);
@@ -129,17 +129,16 @@ void loadSetting()
 }
 void saveSetting()
 {
-	char *tmp;
+	char tmp[1024];
 	fini=fopen("DongAProjSUBTTL.ini","w");
 	fprintf(fini,"width=%d\n",width);
 	fprintf(fini,"height=%d\n",height);
-	fprintf(fini,"filename=%s\n",filename);
+	fprintf(fini,"filename=%s\n",ansi_to_utf8(filename,tmp));
 	fprintf(fini,"finished=%d\n",finished);
-	fprintf(fini,"delimeter=%s\n",unicode_to_utf8(delimeter,&tmp));
+	fprintf(fini,"delimeter=%s\n",unicode_to_utf8(delimeter,tmp));
 	fprintf(fini,"article=%d\n",article);
 	fprintf(fini,"focus=%d\n",focus);
 	fclose(fini);
-	free(tmp);
 }
 void loadFile()
 {
