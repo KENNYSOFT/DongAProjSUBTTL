@@ -5,10 +5,8 @@
 #define END 79
 #define ESCAPE 0
 #define ALTF4 107
-#define HEIGHT 40
-#define WIDTH 180
-FILE *ffn,*ffs,*fin,*fout;
-int idx;
+FILE *fini,*fin,*fout;
+int width=180,height=40,finished=-1,article=5,focus=3,idx;
 char filename[1010],line[8][510];
 wchar_t delimeter[]=L"¢Ò\x2016¡½\xFE3C";
 bool isDelimeter[65536];
@@ -35,36 +33,41 @@ union article_u
 	wchar_t *article_a[7];
 };
 vector<article_u> data;
-inline void wprint(wchar_t ch)
+inline void wprintc(wchar_t ch)
 {
 	WriteConsoleW(GetStdHandle(STD_OUTPUT_HANDLE),&ch,1,NULL,NULL);
 }
-void print(int pos,int idx,int y,bool focus=false)
+void print(int pos,int line,int y)
 {
 	int i,j,fg=0;
-	if(!focus)fg=7;
+	bool focused=(y>=(focus-1)*7&&y<focus*7);
+	if(!focused)fg=7;
 	gotoxy(0,y);
 	SetConsoleColor(fg,15);
-	if(data[pos].article_a[idx]!=data[pos].article_s.texth)for(i=0;data[pos].article_a[idx][i]&&wherex()<WIDTH-2;++i)wprint(data[pos].article_a[idx][i]);
+	if(data[pos].article_a[line]!=data[pos].article_s.texth)for(i=0;data[pos].article_a[line][i]&&wherex()<width-2;++i)wprintc(data[pos].article_a[line][i]);
 	else
 	{
-		for(i=0;data[pos].article_a[idx][i-1]!='\t';++i)wprint(data[pos].article_a[idx][i]);
+		for(i=0;data[pos].article_a[line][i-1]!='\t';++i)wprintc(data[pos].article_a[line][i]);
 		SetConsoleColor(15,fg);
-		for(;i<=data[pos].article_s.cut&&wherex()<WIDTH-2;++i)wprint(data[pos].article_a[idx][i]);
-		if(focus)
+		for(;i<=data[pos].article_s.cut&&wherex()<width-2;++i)wprintc(data[pos].article_a[line][i]);
+		if(focused)
 		{
-			for(j=i;data[pos].article_a[idx][j];++j)if(isDelimeter[data[pos].article_a[idx][j]])break;
-			if(data[pos].article_a[idx][j])
+			for(j=i;data[pos].article_a[line][j];++j)if(isDelimeter[data[pos].article_a[line][j]])break;
+			if(data[pos].article_a[line][j])
 			{
 				SetConsoleColor(15,7);
-				for(;i<=j;++i)wprint(data[pos].article_a[idx][i]);
+				for(;i<=j&&wherex()<width-2;++i)wprintc(data[pos].article_a[line][i]);
 			}
 		}
 		SetConsoleColor(fg,15);
-		for(;data[pos].article_a[idx][i]&&wherex()<WIDTH-2;++i)wprint(data[pos].article_a[idx][i]);
+		for(;data[pos].article_a[line][i]&&wherex()<width-2;++i)wprintc(data[pos].article_a[line][i]);
 	}
-	for(i=wherex();i<WIDTH;++i)printf(" ");
+	for(i=wherex();i<width;++i)printf(" ");
 	SetConsoleColor(0,15);
+}
+void printFocus(int pos,int line)
+{
+	print(pos,line,(focus-1)*7+line);
 }
 void print(int idx,int y7)
 {
@@ -74,16 +77,16 @@ void print(int idx,int y7)
 		for(i=0;i<7;++i)
 		{
 			gotoxy(0,7*y7+i);
-			for(j=0;j<WIDTH;++j)printf(" ");
+			for(j=0;j<width;++j)printf(" ");
 		}
 		return;
 	}
-	for(i=0;i<7;++i)print(avails[idx],i,7*y7+i,y7==2);
+	for(i=0;i<7;++i)print(avails[idx],i,7*y7+i);
 }
 void print()
 {
 	int i;
-	for(i=0;i<=4;++i)print(idx-2+i,i);
+	for(i=0;i<article;++i)print(idx-focus+1+i,i);
 }
 void cut(int pos)
 {
@@ -94,11 +97,55 @@ void cut(int pos)
 		if(i>data[pos].article_s.cut+20)break;
 	}
 }
-void load()
+void loadSetting()
+{
+	int i,sta,end;
+	char line[1024],var[1024],val[1024];
+	fini=fopen("DongAProjSUBTTL.ini","r");
+	while(fgets(line,1024,fini))
+	{
+		for(i=0;line[i];++i)if(line[i]=='=')break;
+		if(line[i]==0)continue;
+		for(sta=0;line[sta]==' '||line[sta]=='\t';++sta);
+		for(end=i-1;line[end]==' '||line[end]=='\t';--end);
+		strncpy(var,line+sta,end-sta+1);
+		var[end-sta+1]=0;
+		for(sta=i+1;line[sta]==' '||line[sta]=='\t';++sta);
+		for(end=strlen(line)-1;line[end]==' '||line[end]=='\t'||line[end]=='\n';--end);
+		strncpy(val,line+sta,end-sta+1);
+		val[end-sta+1]=0;
+		if(!strcmpi(var,"width"))sscanf(val,"%d",&width);
+		else if(!strcmpi(var,"height"))sscanf(val,"%d",&height);
+		else if(!strcmpi(var,"filename"))strcpy(filename,val);
+		else if(!strcmpi(var,"finished"))sscanf(val,"%d",&finished);
+		else if(!strcmpi(var,"delimeter"))utf8_to_unicode(val,delimeter);
+		else if(!strcmpi(var,"article"))sscanf(val,"%d",&article);
+		else if(!strcmpi(var,"focus"))sscanf(val,"%d",&focus);
+	}
+	fclose(fini);
+	if(height<7*article+2)height=article*7+2;
+	if(focus<1)focus=1;
+	if(focus>article)focus=article;
+}
+void saveSetting()
+{
+	char *tmp;
+	fini=fopen("DongAProjSUBTTL.ini","w");
+	fprintf(fini,"width=%d\n",width);
+	fprintf(fini,"height=%d\n",height);
+	fprintf(fini,"filename=%s\n",filename);
+	fprintf(fini,"finished=%d\n",finished);
+	fprintf(fini,"delimeter=%s\n",unicode_to_utf8(delimeter,&tmp));
+	fprintf(fini,"article=%d\n",article);
+	fprintf(fini,"focus=%d\n",focus);
+	fclose(fini);
+	free(tmp);
+}
+void loadFile()
 {
 	int i,j;
 	bool available;
-	if(strlen(filename)==0||(fin=fopen(filename,"r"))==NULL)
+	if(filename[0]==0||(fin=fopen(filename,"r"))==NULL)
 	{
 		gotoxy(0,0);
 		printf("file not exist");
@@ -138,10 +185,12 @@ end:
 	data.pop_back();
 	fclose(fin);
 }
-void save()
+void saveFile()
 {
 	int i,j;
-	fout=fopen(filename,"w");
+	char filename2[1024],command[1024];
+	sprintf(filename2,"%s.tmp",filename);
+	fout=fopen(filename2,"w");
 	for(i=0;i<data.size();++i)
 	{
 		for(j=0;j<7;++j)
@@ -152,34 +201,35 @@ void save()
 		}
 	}
 	fclose(fout);
-	ffs=fopen("finished.txt","w");
-	fprintf(ffs,"%d",avails[idx]);
-	fclose(ffs);
+	sprintf(command,"del \"%s\"",filename);
+	system(command);
+	sprintf(command,"ren \"%s\" \"%s\"",filename2,filename);
+	system(command);
+	finished=avails[idx];
+	saveSetting();
 }
 int main()
 {
-	int i,finished;
+	int i;
 	char ch,ch2;
-	SetConsoleTitle("DongAProjSUBTTL v3.0");
-	SetConsoleSize(HEIGHT,WIDTH);
+	loadSetting();
+	saveSetting();
+	SetConsoleTitle("DongAProjSUBTTL v4.0");
+	SetConsoleSize(height,width);
 	SetCursorType(NOCURSOR);
 	system("color f0");
-	gotoxy(0,HEIGHT-1);
+	gotoxy(0,height-1);
 	printf("¢Õ move / ¡ê[Hm][En] adjust / [ ]¢Ò commit / r reset / x mark / s save / q quit");
-	if(ffn=fopen("filename.txt","r"))fgets(filename,1000,ffn);
-	else ffn=fopen("filename.txt","w");
-	fclose(ffn);
-	if(ffs=fopen("finished.txt","r"))fscanf(ffs,"%d",&finished);
-	else ffs=fopen("finished.txt","w");
-	fclose(ffs);
 	for(i=0;delimeter[i];++i)isDelimeter[delimeter[i]]=true;
-	load();
+	loadFile();
 	for(idx=0;idx<avails.size();++idx)if(avails[idx]>finished)break;
 	print();
 	while(1)
 	{
 		int pos=avails[idx];
 		ch=getch();
+		gotoxy(0,height-2);
+		printf("                              ",ch);
 		switch(ch)
 		{
 		case PRE_ARROW:
@@ -188,11 +238,11 @@ int main()
 			{
 			case LEFT:
 				if(data[pos].article_s.cut>5)for(data[pos].article_s.cut--;!isDelimeter[data[pos].article_s.texth[data[pos].article_s.cut]]&&data[pos].article_s.cut>5;--data[pos].article_s.cut);
-				print(pos,4,18,true);
+				printFocus(pos,4);
 				break;
 			case RIGHT:
 				if(data[pos].article_s.cut<wcslen(data[pos].article_s.texth)-1)for(data[pos].article_s.cut++;!isDelimeter[data[pos].article_s.texth[data[pos].article_s.cut]]&&data[pos].article_s.texth[data[pos].article_s.cut+1];++data[pos].article_s.cut);
-				print(pos,4,18,true);
+				printFocus(pos,4);
 				break;
 			case UP:
 				if(idx>0)idx--;
@@ -204,16 +254,14 @@ int main()
 				break;
 			case HOME:
 				data[pos].article_s.cut=5;
-				print(pos,4,18,true);
+				printFocus(pos,4);
 				break;
 			case END:
 				data[pos].article_s.cut=wcslen(data[pos].article_s.texth)-1;
-				print(pos,4,18,true);
+				printFocus(pos,4);
 				break;
 			default:
-				gotoxy(0,HEIGHT-2);
-				printf("                              ",ch);
-				gotoxy(0,HEIGHT-2);
+				gotoxy(0,height-2);
 				printf("Unknown arrow keycode: %d",ch2);
 				break;
 			}
@@ -226,9 +274,7 @@ int main()
 				exit(0);
 				break;
 			default:
-				gotoxy(0,HEIGHT-2);
-				printf("                              ",ch);
-				gotoxy(0,HEIGHT-2);
+				gotoxy(0,height-2);
 				printf("Unknown escape keycode: %d",ch2);
 				break;
 			}
@@ -241,8 +287,8 @@ int main()
 				memmove(data[pos].article_s.texth+6,data[pos].article_s.texth+data[pos].article_s.cut+1,sizeof(wchar_t)*(wcslen(data[pos].article_s.texth)+1-data[pos].article_s.cut));
 				data[pos].article_s.cut=5;
 				cut(pos);
-				print(pos,3,17,true);
-				print(pos,4,18,true);
+				printFocus(pos,3);
+				printFocus(pos,4);
 			}
 			break;
 		case 'r':
@@ -252,21 +298,21 @@ int main()
 			data[pos].article_s.subttl[data[pos].article_s.subttllen]=0;
 			data[pos].article_s.cut=5;
 			cut(pos);
-			print(pos,3,17,true);
-			print(pos,4,18,true);
+			printFocus(pos,3);
+			printFocus(pos,4);
 			break;
 		case 'x':
 		case 'X':
 			if(wcslen(data[pos].article_s.comnt)==7)wcscat(data[pos].article_s.comnt,L"xx");
 			else if(!wcscmp(data[pos].article_s.comnt+7,L"xx"))data[pos].article_s.comnt[7]=0;
-			print(pos,6,20,true);
+			printFocus(pos,6);
 			break;
 		case 's':
 		case 'S':
-			gotoxy(0,HEIGHT-2);
+			gotoxy(0,height-2);
 			printf("Saving...");
-			save();
-			gotoxy(0,HEIGHT-2);
+			saveFile();
+			gotoxy(0,height-2);
 			printf("         ");
 			break;
 		case CTRLC:
@@ -275,9 +321,7 @@ int main()
 			exit(0);
 			break;
 		default:
-			gotoxy(0,HEIGHT-2);
-			printf("                              ",ch);
-			gotoxy(0,HEIGHT-2);
+			gotoxy(0,height-2);
 			printf("Unknown keycode: %d",ch);
 			break;
 		}

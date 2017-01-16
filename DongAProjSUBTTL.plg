@@ -6,18 +6,18 @@
 --------------------Configuration: DongAProjSUBTTL - Win32 Release--------------------
 </h3>
 <h3>Command Lines</h3>
-Creating temporary file "C:\Users\525hm\AppData\Local\Temp\RSPADD9.tmp" with contents
+Creating temporary file "C:\Users\525hm\AppData\Local\Temp\RSPA535.tmp" with contents
 [
 /nologo /ML /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_CONSOLE" /D "_MBCS" /Fp"Release/DongAProjSUBTTL.pch" /YX /Fo"Release/" /Fd"Release/" /FD /c 
 "D:\KU\Grade 1 (2016)\전자인문학센터\DongAProjSUBTTL\DongAProjSUBTTL.cpp"
 ]
-Creating command line "cl.exe @C:\Users\525hm\AppData\Local\Temp\RSPADD9.tmp" 
-Creating temporary file "C:\Users\525hm\AppData\Local\Temp\RSPADDA.tmp" with contents
+Creating command line "cl.exe @C:\Users\525hm\AppData\Local\Temp\RSPA535.tmp" 
+Creating temporary file "C:\Users\525hm\AppData\Local\Temp\RSPA536.tmp" with contents
 [
 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:console /incremental:no /pdb:"Release/DongAProjSUBTTL.pdb" /machine:I386 /out:"Release/DongAProjSUBTTL.exe" 
 ".\Release\DongAProjSUBTTL.obj"
 ]
-Creating command line "link.exe @C:\Users\525hm\AppData\Local\Temp\RSPADDA.tmp"
+Creating command line "link.exe @C:\Users\525hm\AppData\Local\Temp\RSPA536.tmp"
 <h3>Output Window</h3>
 Compiling...
 DongAProjSUBTTL.cpp
