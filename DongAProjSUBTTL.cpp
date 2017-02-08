@@ -8,7 +8,7 @@
 FILE *fini,*fin,*fout;
 int width=180,height=40,finished=-1,article=5,focus=3,idx;
 char filename[1010],line[8][510];
-wchar_t delimeter[]=L"¢Ò\x2016¡½\xFE3C";
+wchar_t delimeter[]=L"\182\x2016\x3011\xFE3C";
 bool isDelimeter[65536];
 vector<int> avails;
 union article_u
@@ -36,6 +36,11 @@ vector<article_u> data;
 inline void wprintc(wchar_t ch)
 {
 	WriteConsoleW(GetStdHandle(STD_OUTPUT_HANDLE),&ch,1,NULL,NULL);
+}
+void wprints(const wchar_t* str)
+{
+	int i;
+	for(i=0;str[i];++i)wprintc(str[i]);
 }
 void print(int pos,int line,int y)
 {
@@ -88,7 +93,7 @@ void print()
 	int i;
 	for(i=0;i<article;++i)print(idx-focus+1+i,i);
 }
-void cut(int pos)
+void findCut(int pos)
 {
 	int i;
 	for(i=6;data[pos].article_s.texth[i];++i)
@@ -102,6 +107,7 @@ void loadSetting()
 	int i,sta,end;
 	char line[1024],var[1024],val[1024];
 	fini=fopen("DongAProjSUBTTL.ini","r");
+	if(fini==NULL)return;
 	while(fgets(line,1024,fini))
 	{
 		for(i=0;line[i];++i)if(line[i]=='=')break;
@@ -124,6 +130,7 @@ void loadSetting()
 	}
 	fclose(fini);
 	if(height<7*article+2)height=article*7+2;
+	if(article<1)article=1;
 	if(focus<1)focus=1;
 	if(focus>article)focus=article;
 }
@@ -176,7 +183,7 @@ void loadFile()
 		}
 		if(available)
 		{
-			cut(i);
+			findCut(i);
 			avails.push_back(i);
 		}
 	}
@@ -213,12 +220,12 @@ int main()
 	char ch,ch2;
 	loadSetting();
 	saveSetting();
-	SetConsoleTitle("DongAProjSUBTTL v4.0");
+	SetConsoleTitle("DongAProjSUBTTL v4.2");
 	SetConsoleSize(height,width);
 	SetCursorType(NOCURSOR);
 	system("color f0");
 	gotoxy(0,height-1);
-	printf("¢Õ move / ¡ê[Hm][En] adjust / [ ]¢Ò commit / r reset / x mark / s save / q quit");
+	wprints(L"\x2195 move / \x2194[Hm][En] adjust / Shift+\x2194 precise adjust / [ ]¢Ò commit / r reset / x mark / s save / q quit");
 	for(i=0;delimeter[i];++i)isDelimeter[delimeter[i]]=true;
 	loadFile();
 	for(idx=0;idx<avails.size();++idx)if(avails[idx]>finished)break;
@@ -236,11 +243,19 @@ int main()
 			switch(ch2)
 			{
 			case LEFT:
-				if(data[pos].article_s.cut>5)for(data[pos].article_s.cut--;!isDelimeter[data[pos].article_s.texth[data[pos].article_s.cut]]&&data[pos].article_s.cut>5;--data[pos].article_s.cut);
+				if(data[pos].article_s.cut>5)
+				{
+					if(GetKeyState(VK_SHIFT)<0)data[pos].article_s.cut--;
+					else for(data[pos].article_s.cut--;!isDelimeter[data[pos].article_s.texth[data[pos].article_s.cut]]&&data[pos].article_s.cut>5;--data[pos].article_s.cut);
+				}
 				printFocus(pos,4);
 				break;
 			case RIGHT:
-				if(data[pos].article_s.cut<wcslen(data[pos].article_s.texth)-1)for(data[pos].article_s.cut++;!isDelimeter[data[pos].article_s.texth[data[pos].article_s.cut]]&&data[pos].article_s.texth[data[pos].article_s.cut+1];++data[pos].article_s.cut);
+				if(data[pos].article_s.cut<wcslen(data[pos].article_s.texth)-1)
+				{
+					if(GetKeyState(VK_SHIFT)<0)data[pos].article_s.cut++;
+					else for(data[pos].article_s.cut++;!isDelimeter[data[pos].article_s.texth[data[pos].article_s.cut]]&&data[pos].article_s.texth[data[pos].article_s.cut+1];++data[pos].article_s.cut);
+				}
 				printFocus(pos,4);
 				break;
 			case UP:
@@ -285,7 +300,7 @@ int main()
 				wcsncat(data[pos].article_s.subttl,data[pos].article_s.texth+6,data[pos].article_s.cut-5);
 				memmove(data[pos].article_s.texth+6,data[pos].article_s.texth+data[pos].article_s.cut+1,sizeof(wchar_t)*(wcslen(data[pos].article_s.texth)+1-data[pos].article_s.cut));
 				data[pos].article_s.cut=5;
-				cut(pos);
+				findCut(pos);
 				printFocus(pos,3);
 				printFocus(pos,4);
 			}
@@ -296,7 +311,7 @@ int main()
 			wcsncpy(data[pos].article_s.texth+6,data[pos].article_s.subttl+data[pos].article_s.subttllen,wcslen(data[pos].article_s.subttl)-data[pos].article_s.subttllen);
 			data[pos].article_s.subttl[data[pos].article_s.subttllen]=0;
 			data[pos].article_s.cut=5;
-			cut(pos);
+			findCut(pos);
 			printFocus(pos,3);
 			printFocus(pos,4);
 			break;
